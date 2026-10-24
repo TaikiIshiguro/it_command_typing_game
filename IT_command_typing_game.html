@@ -1,0 +1,1738 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>IT Command Typing Game</title>
+
+<style>
+
+:root{
+    --bg:#08121f;
+    --panel:#12233a;
+    --border:#1fdfff;
+    --accent:#00ff88;
+    --danger:#ff5c5c;
+    --text:#eef7ff;
+    --sub:#7fb8ff;
+}
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    min-height:100vh;
+    font-family: sans-serif;
+    color:var(--text);
+    overflow-x:hidden;
+    background:
+    radial-gradient(circle at center, #102445, #08121f );
+}
+
+/* ==========================
+   回路風背景
+========================== */
+
+body::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    z-index:-2;
+    background:
+    repeating-linear-gradient(0deg, rgba(0,255,255,.06), rgba(0,255,255,.06) 1px, transparent 1px, transparent 60px),
+    repeating-linear-gradient(90deg, rgba(0,255,255,.06), rgba(0,255,255,.06) 1px, transparent 1px, transparent 60px);
+}
+
+body::after{
+    content:"";
+    position:fixed;
+    inset:0;
+    z-index:-1;
+    pointer-events:none;
+    background:
+    radial-gradient(circle at 20% 20%, rgba(0,255,255,.08), transparent 30%),
+    radial-gradient(circle at 80% 70%, rgba(0,255,136,.08), transparent 30%);
+}
+
+/* ==========================
+   共通
+========================== */
+
+.hidden{
+    display:none !important;
+}
+
+.container{
+    width:min(1300px,95%);
+    margin:auto;
+    padding:20px;
+}
+
+.title{
+    text-align:center;
+    margin-bottom:25px;
+}
+
+.title h1{
+    font-size:3rem;
+    color:#2ce8ff;
+    text-shadow: 0 0 10px #2ce8ff, 0 0 20px #2ce8ff;
+}
+
+.title p{
+    margin-top:10px;
+    color:#a5cfff;
+}
+
+.card{
+    background:rgba(12,27,48,.94);
+    border:1px solid rgba(31,223,255,.3);
+    border-radius:16px;
+    padding:20px;
+    margin-bottom:20px;
+    box-shadow:0 0 15px rgba(31,223,255,.08);
+}
+
+h2{
+    margin-bottom:15px;
+    color:#7becff;
+}
+
+button{
+    width:100%;
+    border:none;
+    border-radius:12px;
+    padding:15px;
+    font-size:1rem;
+    font-weight:bold;
+    cursor:pointer;
+    color:white;
+    background: linear-gradient( 135deg, #00cfff, #007bff );
+}
+
+button:hover{
+    filter:brightness(1.08);
+}
+
+select{
+    width:100%;
+    padding:12px;
+    border-radius:10px;
+    font-size:1rem;
+    border:none;
+}
+
+/* ==========================
+   ゲーム画面
+========================== */
+
+.stats{
+    display:grid;
+    gap:16px;
+    grid-template-columns: repeat( auto-fit, minmax(180px,1fr) );
+    margin-bottom:20px;
+}
+
+.stat-box{
+    background:rgba(8,20,35,.96);
+    border-radius:12px;
+    border:1px solid rgba(0,255,255,.2);
+    text-align:center;
+    padding:15px;
+}
+
+.stat-label{
+    color:#8cbefb;
+    margin-bottom:8px;
+}
+
+.stat-value{
+    color:var(--accent);
+    font-size:2rem;
+    font-weight:bold;
+}
+
+.category{
+    color:#69e9ff;
+    font-weight:bold;
+    margin-bottom:10px;
+}
+
+.command{
+    font-size:2rem;
+    font-family: Consolas, monospace;
+    color:var(--accent);
+    word-break:break-word;
+    margin-bottom:15px;
+}
+
+.meaning{
+    font-size:1rem;
+    color:#dbebff;
+    line-height:1.8;
+}
+
+/* ==========================
+   ターミナル
+========================== */
+
+.terminal{
+    background:black;
+    border-radius:12px;
+    padding:20px;
+    border: 2px solid #333;
+}
+
+.terminal-head{
+    color:#7c7c7c;
+    margin-bottom:10px;
+    font-family: Consolas, monospace;
+}
+
+#typingInput{
+    width:100%;
+    border:none;
+    outline:none;
+    background:black;
+    color:white;
+    font-family: Consolas, monospace;
+    font-size:28px;
+}
+
+#inputStatus{
+    min-height:25px;
+    margin-top:10px;
+    font-weight:bold;
+}
+
+/* ==========================
+   結果画面
+========================== */
+
+.result-grid{
+    display:grid;
+    gap:20px;
+    grid-template-columns: repeat( auto-fit, minmax(220px,1fr) );
+    margin-top:20px;
+}
+
+.result-box{
+    text-align:center;
+}
+
+.result-box .value{
+    font-size:2rem;
+    color:var(--accent);
+    font-weight:bold;
+}
+
+.highscore{
+    text-align:center;
+    margin-top:20px;
+    color:gold;
+    font-size:1.6rem;
+    font-weight:bold;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+}
+
+th,
+td{
+    border: 1px solid #2f4e7c;
+    padding:10px;
+    text-align:center;
+}
+
+th{
+    background:#193255;
+}
+
+/* ==========================
+   コンボ表示
+========================== */
+
+#comboBox{
+    position:fixed;
+    top:20px;
+    right:20px;
+    background:rgba(0,255,136,.15);
+    border: 1px solid rgba( 0,255,136,.4 );
+    color: #00ff88;
+    border-radius:12px;
+    padding:12px 20px;
+    font-weight:bold;
+    z-index:999;
+    display:none;
+}
+
+/* ==========================
+   モバイル
+========================== */
+
+@media(max-width:768px){
+    .title h1{font-size:2rem;}
+    .command{font-size:1.4rem;}
+    #typingInput{font-size:20px;}
+    .stat-value{font-size:1.4rem;}
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+<div id="comboBox">COMBO 0</div>
+
+<div class="container">
+
+
+<!-- ==========================
+     開始画面
+========================== -->
+
+<section id="startScreen">
+
+<div class="title">
+    <h1>IT Command Typing Game</h1>
+    <p>企業・自治体の情シス向け コマンドタイピング練習</p>
+</div>
+
+<div class="card">
+    <h2>カテゴリ</h2>
+    <select id="categorySelect">
+        <option value="ALL">Windows + Linux</option>
+        <option value="Windows">Windows</option>
+        <option value="Linux">Linux</option>
+    </select>
+</div>
+
+<div class="card">
+    <h2>制限時間</h2>
+    <select id="timeSelect">
+        <option value="60">60秒</option>
+        <option value="120">120秒</option>
+        <option value="300">300秒</option>
+    </select>
+</div>
+
+<button id="startButton">ゲーム開始</button>
+
+</section>
+
+
+<!-- ==========================
+     プレイ画面
+========================== -->
+
+<section id="gameScreen" class="hidden">
+
+<div class="stats">
+
+<div class="stat-box">
+    <div class="stat-label">得点</div>
+    <div id="score" class="stat-value">0</div>
+</div>
+
+<div class="stat-box">
+    <div class="stat-label">WPM</div>
+    <div id="wpm" class="stat-value">0</div>
+</div>
+
+<div class="stat-box">
+    <div class="stat-label">正確率</div>
+    <div id="accuracy" class="stat-value">100%</div>
+</div>
+
+<div class="stat-box">
+    <div class="stat-label">残り時間</div>
+    <div id="timeLeft" class="stat-value">60</div>
+</div>
+
+</div>
+
+<div class="card">
+    <div id="questionCategory" class="category"></div>
+    <div id="questionCommand" class="command"></div>
+    <div id="questionMeaning" class="meaning"></div>
+</div>
+
+<div class="terminal">
+    <div class="terminal-head">C:\></div>
+    <input id="typingInput" type="text" autocomplete="off" spellcheck="false">
+    <div id="inputStatus"></div>
+</div>
+
+</section>
+
+<!-- ==========================
+     結果画面
+========================== -->
+
+<section id="resultScreen" class="hidden">
+
+<div class="card">
+    <h2>ゲーム結果</h2>
+    <div id="resultSummary" class="result-grid"></div>
+    <div id="highScoreArea"></div>
+</div>
+
+<div class="card">
+    <h2>ランキング</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>順位</th>
+                <th>得点</th>
+                <th>WPM</th>
+                <th>正確率</th>
+                <th>日時</th>
+            </tr>
+        </thead>
+        <tbody id="rankingBody"></tbody>
+    </table>
+</div>
+
+<button id="retryButton">もう一度プレイ</button>
+
+</section>
+
+</div>
+
+
+
+<script>
+
+/* =====================================================
+   問題データ
+===================================================== */
+
+const QUESTIONS = [];
+
+/* =====================================================
+   共通登録関数
+===================================================== */
+
+function addQuestion(
+    category,
+    command,
+    meaning
+){
+    QUESTIONS.push({
+        category,
+        command,
+        meaning
+    });
+}
+
+/* =====================================================
+   Windows 基本コマンド
+===================================================== */
+
+[
+["ipconfig","IPアドレス確認"],
+["ipconfig /all","IP設定詳細表示"],
+["ipconfig /release","IPアドレス解放"],
+["ipconfig /renew","IPアドレス再取得"],
+["hostname","ホスト名表示"],
+["whoami","ログオンユーザー表示"],
+["systeminfo","システム情報表示"],
+["tasklist","プロセス一覧"],
+["tasklist /svc","サービス一覧付きプロセス表示"],
+["tasklist /v","詳細プロセス表示"],
+["netstat -ano","通信状況確認"],
+["netstat -an","ポート一覧表示"],
+["arp -a","ARPテーブル表示"],
+["route print","ルーティングテーブル表示"],
+["nslookup localhost","DNS名前解決確認"],
+["gpupdate /force","グループポリシー更新"],
+["sfc /scannow","システムファイル検査"],
+["chkdsk","ディスク検査"],
+["quser","ログオンユーザー確認"],
+["qwinsta","セッション確認"],
+["net use","ネットワークドライブ確認"],
+["net share","共有フォルダ確認"],
+["net user","ユーザー一覧表示"],
+["sc query","サービス一覧表示"],
+["powercfg /a","電源設定確認"]
+].forEach(v=>{
+    addQuestion(
+        "Windows",
+        v[0],
+        v[1]
+    );
+});
+
+/* =====================================================
+   Windows パス系
+===================================================== */
+
+const WINDOWS_PATHS = [
+"C:\\Temp",
+"C:\\Logs",
+"C:\\Backup",
+"C:\\Users",
+"C:\\Users\\Public",
+"C:\\Windows",
+"C:\\Windows\\System32",
+"C:\\Program Files",
+"C:\\Program Files (x86)",
+"C:\\Scripts",
+"C:\\Data",
+"C:\\Data\\Finance",
+"C:\\Data\\HR",
+"C:\\Data\\IT",
+"C:\\Data\\Public"
+];
+
+WINDOWS_PATHS.forEach(path=>{
+    addQuestion(
+        "Windows",
+        `dir ${path}`,
+        "ディレクトリ一覧表示"
+    );
+    addQuestion(
+        "Windows",
+        `cd ${path}`,
+        "ディレクトリ移動"
+    );
+    addQuestion(
+        "Windows",
+        `tree ${path}`,
+        "フォルダ構造表示"
+    );
+    addQuestion(
+        "Windows",
+        `robocopy ${path} D:\\Backup`,
+        "バックアップコピー"
+    );
+});
+
+/* =====================================================
+   Windows ネットワーク
+===================================================== */
+
+const HOSTS = [
+"localhost",
+"filesrv01",
+"filesrv02",
+"app01",
+"app02",
+"dc01",
+"dc02",
+"nas01"
+];
+
+HOSTS.forEach(host=>{
+    addQuestion(
+        "Windows",
+        `ping ${host}`,
+        "疎通確認"
+    );
+    addQuestion(
+        "Windows",
+        `tracert ${host}`,
+        "経路確認"
+    );
+    addQuestion(
+        "Windows",
+        `nslookup ${host}`,
+        "名前解決確認"
+    );
+});
+
+/* =====================================================
+   Linux 基本コマンド
+===================================================== */
+
+[
+["ls","一覧表示"],
+["ls -la","詳細一覧表示"],
+["pwd","現在位置表示"],
+["df -h","ディスク使用率確認"],
+["free -m","メモリ使用量確認"],
+["top","負荷確認"],
+["uname -a","OS情報表示"],
+["id","ユーザー情報表示"],
+["who","ログオンユーザー確認"],
+["w","利用状況確認"],
+["uptime","稼働時間確認"],
+["ip addr","IPアドレス確認"],
+["ip route","ルート確認"],
+["ss -tulpn","待受ポート確認"],
+["ps aux","プロセス表示"],
+["ps -ef","詳細プロセス表示"],
+["mount","マウント状況確認"],
+["history","コマンド履歴表示"],
+["hostnamectl","ホスト情報確認"],
+["timedatectl","時刻設定確認"]
+].forEach(v=>{
+
+    addQuestion(
+        "Linux",
+        v[0],
+        v[1]
+    );
+
+});
+
+/* =====================================================
+   Linux ディレクトリ系
+===================================================== */
+
+const LINUX_DIRS = [
+"/tmp",
+"/var",
+"/var/log",
+"/home",
+"/etc",
+"/etc/ssh",
+"/usr/local/bin",
+"/opt",
+"/srv",
+"/mnt"
+];
+
+LINUX_DIRS.forEach(dir=>{
+    addQuestion(
+        "Linux",
+        `ls -la ${dir}`,
+        "詳細一覧表示"
+    );
+    addQuestion(
+        "Linux",
+        `cd ${dir}`,
+        "ディレクトリ移動"
+    );
+    addQuestion(
+        "Linux",
+        `du -sh ${dir}`,
+        "容量確認"
+    );
+    addQuestion(
+        "Linux",
+        `find ${dir} -name "*.log"`,
+        "ログ検索"
+    );
+});
+
+/* =====================================================
+   Linux サービス
+===================================================== */
+
+[
+"nginx",
+"httpd",
+"sshd",
+"docker",
+"chronyd",
+"postgresql",
+"mariadb",
+"rsyslog"
+].forEach(service=>{
+    addQuestion(
+        "Linux",
+        `systemctl status ${service}`,
+        "サービス状態確認"
+    );
+    addQuestion(
+        "Linux",
+        `systemctl restart ${service}`,
+        "サービス再起動"
+    );
+    addQuestion(
+        "Linux",
+        `journalctl -u ${service}`,
+        "ログ確認"
+    );
+});
+
+/* =====================================================
+   Linux 運用系
+===================================================== */
+
+[
+"grep root /etc/passwd",
+"tail -f /var/log/messages",
+"tail -f /var/log/syslog",
+"cat /etc/os-release",
+"chmod 755 script.sh",
+"chmod 644 config.ini",
+"chown root:root file.txt",
+"crontab -l",
+"sudo apt update",
+"sudo apt upgrade",
+"sudo dnf update",
+"ssh admin@app01",
+"ssh root@192.168.1.10",
+"curl https://example.com",
+"wget https://example.com/file.zip",
+"head -20 log.txt",
+"grep ERROR app.log"
+].forEach(cmd=>{
+    addQuestion(
+        "Linux",
+        cmd,
+        "Linux運用コマンド"
+    );
+});
+
+/* =====================================================
+   IPアドレス問題
+===================================================== */
+
+const IPS = [
+"192.168.1.1",
+"192.168.1.10",
+"192.168.10.1",
+"192.168.10.10",
+"10.0.0.1",
+"10.1.1.1",
+"172.16.0.1",
+"172.16.10.10"
+];
+
+IPS.forEach(ip=>{
+    addQuestion(
+        "Windows",
+        `ping ${ip}`,
+        "IP疎通確認"
+    );
+    addQuestion(
+        "Windows",
+        `tracert ${ip}`,
+        "経路確認"
+    );
+    addQuestion(
+        "Linux",
+        `ping -c 4 ${ip}`,
+        "IP疎通確認"
+    );
+});
+
+/* =====================================================
+   問題数拡張
+===================================================== */
+
+const SHARES = [
+"Public",
+"Finance",
+"HR",
+"IT",
+"System",
+"Archive",
+"ProjectA",
+"ProjectB",
+"ProjectC",
+"ProjectD"
+];
+
+SHARES.forEach(name=>{
+    addQuestion(
+        "Windows",
+        `dir C:\\Data\\${name}`,
+        "共有フォルダ確認"
+    );
+    addQuestion(
+        "Windows",
+        `robocopy C:\\Data\\${name} D:\\Backup\\${name}`,
+        "バックアップ実行"
+    );
+    addQuestion(
+        "Linux",
+        `ls -la /srv/${name.toLowerCase()}`,
+        "共有領域確認"
+    );
+    addQuestion(
+        "Linux",
+        `du -sh /srv/${name.toLowerCase()}`,
+        "容量確認"
+    );
+});
+
+/* =====================================================
+   300問以上になるまでバリエーション生成
+===================================================== */
+
+const BASE = [...QUESTIONS];
+
+while(QUESTIONS.length < 320){
+    const q =
+    BASE[
+        Math.floor(
+            Math.random() *
+            BASE.length
+        )
+    ];
+    QUESTIONS.push({
+        category:q.category,
+        command:q.command,
+        meaning:q.meaning
+    });
+}
+
+console.log(
+    "Question Count:",
+    QUESTIONS.length
+);
+
+/* =====================================================
+   DOM取得
+===================================================== */
+
+const startScreen = document.getElementById("startScreen");
+const gameScreen = document.getElementById("gameScreen");
+const resultScreen = document.getElementById("resultScreen");
+const categorySelect = document.getElementById("categorySelect");
+const timeSelect = document.getElementById("timeSelect");
+const startButton = document.getElementById("startButton");
+const retryButton = document.getElementById("retryButton");
+const scoreEl = document.getElementById("score");
+const wpmEl = document.getElementById("wpm");
+const accuracyEl = document.getElementById("accuracy");
+const timeLeftEl = document.getElementById("timeLeft");
+const questionCategoryEl = document.getElementById("questionCategory");
+const questionCommandEl = document.getElementById("questionCommand");
+const questionMeaningEl = document.getElementById("questionMeaning");
+const typingInput = document.getElementById("typingInput");
+const inputStatus = document.getElementById("inputStatus");
+const comboBox = document.getElementById("comboBox");
+
+/* =====================================================
+   ゲーム状態
+===================================================== */
+
+let gamePool = [];
+let currentQuestion = null;
+let timerId = null;
+let startTime = 0;
+let remainSeconds = 0;
+let score = 0;
+let combo = 0;
+let maxCombo = 0;
+let correctAnswers = 0;
+let totalAnswers = 0;
+let totalKeystrokes = 0;    /* 打鍵数 */
+let correctKeystrokes = 0;  /* 正しい打鍵数 */
+let typedCharacters = 0;    /* 完了文字数 */
+
+/* =====================================================
+   ユーティリティ
+===================================================== */
+
+function shuffle(array){
+    const copy = [...array];
+    for(
+        let i = copy.length - 1;
+        i > 0;
+        i--
+    ){
+        const j =
+        Math.floor(
+            Math.random() *
+            (i + 1)
+        );
+        [
+            copy[i],
+            copy[j]
+        ] = [
+            copy[j],
+            copy[i]
+        ];
+    }
+    return copy;
+}
+
+/* =====================================================
+   問題プール生成
+===================================================== */
+
+function createQuestionPool(){
+    const category =
+    categorySelect.value;
+    if(category === "ALL"){
+        gamePool =
+        shuffle(QUESTIONS);
+        return;
+    }
+    gamePool =
+    shuffle(
+        QUESTIONS.filter(
+            q =>
+            q.category === category
+        )
+    );
+}
+
+/* =====================================================
+   問題取得
+===================================================== */
+
+function getNextQuestion(){
+    if(gamePool.length === 0){
+        createQuestionPool();
+    }
+    currentQuestion = gamePool.pop();
+    displayQuestion();
+}
+
+/* =====================================================
+   問題表示
+===================================================== */
+
+function displayQuestion(){
+    questionCategoryEl.textContent = `カテゴリ : ${currentQuestion.category}`;
+    questionCommandEl.textContent = currentQuestion.command;
+    questionMeaningEl.textContent = currentQuestion.meaning;
+    typingInput.value = "";
+    inputStatus.textContent = "";
+    typingInput.focus();
+}
+
+/* =====================================================
+   WPM計算
+===================================================== */
+
+function calculateWPM(){
+    if(startTime === 0){
+        return 0;
+    }
+    const elapsedMinutes =
+    (
+        Date.now() - startTime
+    ) /
+    1000 /
+    60;
+    if(elapsedMinutes <= 0){
+        return 0;
+    }
+    return Math.round(
+        (
+            typedCharacters /
+            5
+        )
+        /
+        elapsedMinutes
+    );
+}
+
+/* =====================================================
+   正確率計算
+===================================================== */
+
+function calculateAccuracy(){
+    if(totalKeystrokes === 0){
+        return 100;
+    }
+    return (
+        correctKeystrokes /
+        totalKeystrokes
+    ) * 100;
+}
+
+/* =====================================================
+   ステータス更新
+===================================================== */
+
+function updateDisplay(){
+    scoreEl.textContent = score;
+    wpmEl.textContent = calculateWPM();
+    accuracyEl.textContent = calculateAccuracy().toFixed(1) + "%";
+    comboBox.textContent = `COMBO ${combo}`;
+}
+
+/* =====================================================
+   スコア付与
+===================================================== */
+
+function addScore(commandLength){
+    const baseScore =
+    commandLength * 10;
+    const comboBonus =
+    Math.min(
+        combo * 5,
+        150
+    );
+    score +=
+    baseScore +
+    comboBonus;
+}
+
+/* =====================================================
+   正解処理
+===================================================== */
+
+function processCorrect(){
+    combo++;
+    if(combo > maxCombo){
+        maxCombo = combo;
+    }
+    correctAnswers++;
+    typedCharacters +=
+    currentQuestion.command.length;
+    addScore(
+        currentQuestion.command.length
+    );
+    flashSuccess();
+    updateDisplay();
+    getNextQuestion();
+}
+
+/* =====================================================
+   不正解処理
+===================================================== */
+
+function processMiss(){
+    combo = 0;
+    inputStatus.style.color = "#ff5c5c";
+    inputStatus.textContent = "入力内容が一致しません";
+    shakeScreen();
+    updateDisplay();
+}
+
+/* =====================================================
+   Enter判定
+===================================================== */
+
+function submitCurrentAnswer(){
+    const answer =
+    typingInput.value;
+    totalAnswers++;
+    if(
+        answer ===
+        currentQuestion.command
+    ){
+        processCorrect();
+    }else{
+        processMiss();
+    }
+}
+
+/* =====================================================
+   入力監視
+===================================================== */
+
+typingInput.addEventListener(
+"keydown",
+event=>{
+    if(event.key === "Enter"){
+        event.preventDefault();
+        submitCurrentAnswer();
+        return;
+    }
+    if(
+        event.key.length === 1
+    ){
+        totalKeystrokes++;
+        const pos =
+        typingInput.selectionStart;
+        const targetChar =
+        currentQuestion.command[pos];
+        if(
+            event.key === targetChar
+        ){
+            correctKeystrokes++;
+        }
+        updateDisplay();
+    }
+
+});
+
+/* =====================================================
+   リアルタイム入力ガイド
+===================================================== */
+
+typingInput.addEventListener(
+"input",
+()=>{
+    const current = typingInput.value;
+    const target = currentQuestion.command;
+    if(
+        target.startsWith(current)
+    ){
+        typingInput.style.color = "#00ff88";
+        inputStatus.style.color = "#00ff88";
+        inputStatus.textContent = `${current.length}/${target.length}`;
+    }
+    else{
+        typingInput.style.color = "#ff5c5c";
+        inputStatus.style.color = "#ff5c5c";
+        inputStatus.textContent = "誤入力あり";
+    }
+
+});
+
+/* =====================================================
+   タイマー
+===================================================== */
+
+function startTimer(){
+
+    timeLeftEl.textContent = remainSeconds;
+
+    timerId =
+    setInterval(()=>{
+        remainSeconds--;
+        timeLeftEl.textContent = remainSeconds;
+        updateDisplay();
+
+        if(remainSeconds <= 0){
+            clearInterval(
+                timerId
+            );
+            finishGame();
+        }
+    },1000);
+}
+
+/* =====================================================
+   ゲーム開始
+===================================================== */
+
+function startGame(){
+    score = 0;
+    combo = 0;
+    maxCombo = 0;
+    correctAnswers = 0;
+    totalAnswers = 0;
+    totalKeystrokes = 0;
+    correctKeystrokes = 0;
+    typedCharacters = 0;
+    remainSeconds = Number(timeSelect.value);
+
+    createQuestionPool();
+
+    startTime = Date.now();
+
+    startScreen.classList.add("hidden");
+    gameScreen.classList.remove("hidden");
+    comboBox.style.display = "block";
+
+    updateDisplay();
+    getNextQuestion();
+    startTimer();
+}
+
+/* =====================================================
+   開始ボタン
+===================================================== */
+
+startButton.addEventListener(
+    "click",
+    startGame
+);
+
+/* =====================================================
+   再プレイ
+===================================================== */
+
+retryButton.addEventListener(
+"click",
+()=>{
+    location.reload();
+});
+
+/* =====================================================
+   ランキング管理
+===================================================== */
+
+const STORAGE_KEY =
+"IT_COMMAND_TYPING_RANKING_V2";
+
+function loadRanking(){
+    try{
+        const data =
+        localStorage.getItem(
+            STORAGE_KEY
+        );
+        if(!data){
+            return [];
+        }
+        return JSON.parse(data);
+    }catch{
+        return [];
+    }
+}
+
+function saveRanking(data){
+
+    localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify(data)
+    );
+
+}
+
+/* =====================================================
+   ランキング保存
+===================================================== */
+
+function saveResult(){
+
+    const result = {
+        score,
+        wpm:
+        calculateWPM(),
+        accuracy:
+        Number(
+            calculateAccuracy()
+            .toFixed(1)
+        ),
+        maxCombo,
+        date:
+        new Date()
+        .toLocaleString(
+            "ja-JP"
+        )
+    };
+    const ranking = loadRanking();
+    ranking.push(result);
+    ranking.sort(
+        (a,b)=>
+        b.score-a.score
+    );
+    ranking.splice(10);
+    saveRanking(ranking);
+    return {
+        ranking,
+        result
+    };
+}
+
+/* =====================================================
+   順位計算
+===================================================== */
+
+function calculateRankPosition(
+    ranking,
+    targetScore
+){
+
+    const position =
+    ranking.findIndex(
+        item =>
+        item.score === targetScore
+    );
+    return position + 1;
+
+}
+
+/* =====================================================
+   ハイスコア判定
+===================================================== */
+
+function checkHighScore(
+    ranking,
+    currentScore
+){
+
+    if(
+        ranking.length === 0
+    ){
+        return true;
+    }
+
+    return (
+        ranking[0].score
+        ===
+        currentScore
+    );
+
+}
+
+/* =====================================================
+   ランキング描画
+===================================================== */
+
+function renderRankingTable(){
+    const ranking = loadRanking();
+    const tbody = document.getElementById( "rankingBody" );
+
+    tbody.innerHTML = "";
+
+    ranking.forEach(
+        (
+            item,
+            index
+        )=>{
+
+        const tr =
+        document.createElement("tr");
+
+        tr.innerHTML = `
+
+        <td>
+        ${index+1}
+        </td>
+        <td>
+        ${item.score}
+        </td>
+        <td>
+        ${item.wpm}
+        </td>
+        <td>
+        ${item.accuracy}%
+        </td>
+        <td>
+        ${item.date}
+        </td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+}
+
+/* =====================================================
+   結果画面生成
+===================================================== */
+
+function createResultSummary(
+    rankPosition
+){
+
+    const accuracy = calculateAccuracy().toFixed(1);
+
+    const wpm = calculateWPM();
+    return `
+    <div class="result-box">
+
+        <div>
+        得点
+        </div>
+
+        <div class="value">
+        ${score}
+        </div>
+
+    </div>
+
+    <div class="result-box">
+
+        <div>
+        WPM
+        </div>
+
+        <div class="value">
+        ${wpm}
+        </div>
+
+    </div>
+
+    <div class="result-box">
+
+        <div>
+        正確率
+        </div>
+
+        <div class="value">
+        ${accuracy}%
+        </div>
+
+    </div>
+
+    <div class="result-box">
+
+        <div>
+        正解数
+        </div>
+
+        <div class="value">
+        ${correctAnswers}
+        </div>
+
+    </div>
+
+    <div class="result-box">
+
+        <div>
+        回答数
+        </div>
+
+        <div class="value">
+        ${totalAnswers}
+        </div>
+
+    </div>
+
+    <div class="result-box">
+
+        <div>
+        最大コンボ
+        </div>
+
+        <div class="value">
+        ${maxCombo}
+        </div>
+
+    </div>
+
+    <div class="result-box">
+
+        <div>
+        入力文字数
+        </div>
+
+        <div class="value">
+        ${typedCharacters}
+        </div>
+
+    </div>
+
+    <div class="result-box">
+
+        <div>
+        順位
+        </div>
+
+        <div class="value">
+        ${rankPosition}位
+        </div>
+
+    </div>
+
+    `;
+}
+
+/* =====================================================
+   結果表示
+===================================================== */
+
+function showResultScreen(){
+
+    const saveData = saveResult();
+    const ranking = saveData.ranking;
+    const rankPosition =
+    calculateRankPosition(
+        ranking,
+        score
+    );
+
+    const isHighScore =
+    checkHighScore(
+        ranking,
+        score
+    );
+
+    gameScreen.classList.add(
+        "hidden"
+    );
+
+    resultScreen.classList.remove(
+        "hidden"
+    );
+
+    comboBox.style.display =
+    "none";
+
+    document
+    .getElementById(
+        "resultSummary"
+    )
+    .innerHTML =
+    createResultSummary(
+        rankPosition
+    );
+
+    const highScoreArea =
+    document
+    .getElementById(
+        "highScoreArea"
+    );
+
+    if(isHighScore){
+        highScoreArea.innerHTML =
+        `
+        <div class="highscore">
+        ★ HIGH SCORE ★
+        </div>
+        `;
+    }
+    else{
+        highScoreArea.innerHTML =
+        "";
+    }
+    renderRankingTable();
+}
+
+/* =====================================================
+   ゲーム終了
+===================================================== */
+
+function finishGame(){
+    clearInterval(
+        timerId
+    );
+    typingInput.disabled =
+    true;
+    showResultScreen();
+}
+
+/* =====================================================
+   前回ランキング表示
+===================================================== */
+
+window.addEventListener(
+    "load",
+    ()=>{
+        renderRankingTable();
+    }
+);
+
+/* =====================================================
+   SUCCESSエフェクト
+===================================================== */
+
+function flashSuccess(){
+
+    const el =
+    document.createElement("div");
+
+    el.textContent =
+    "SUCCESS";
+
+    Object.assign(
+        el.style,
+        {
+            position:"fixed",
+            left:"50%",
+            top:"50%",
+            transform:
+            "translate(-50%,-50%)",
+            fontSize:"48px",
+            fontWeight:"bold",
+            color:"#00ff88",
+            textShadow:
+            "0 0 20px #00ff88",
+            pointerEvents:"none",
+            zIndex:"9999"
+        }
+    );
+
+    document.body.appendChild(el);
+
+    let opacity = 1;
+    let offset = 0;
+
+    const timer =
+    setInterval(()=>{
+        opacity -= 0.03;
+        offset -= 2;
+
+        el.style.opacity = opacity;
+        el.style.transform = `translate(-50%, calc(-50% + ${offset}px))`;
+
+        if(opacity <= 0){
+            clearInterval(timer);
+            el.remove();
+        }
+    },16);
+
+}
+
+/* =====================================================
+   MISS演出
+===================================================== */
+
+function shakeScreen(){
+
+    document.body.animate(
+    [
+        {
+            transform: "translateX(-8px)"
+        },
+        {
+            transform: "translateX(8px)"
+        },
+        {
+            transform: "translateX(-5px)"
+        },
+        {
+            transform: "translateX(5px)"
+        },
+        {
+            transform: "translateX(0)"
+        }
+    ],
+    {
+        duration:220
+    }
+    );
+
+}
+
+/* =====================================================
+   キー入力パーティクル
+===================================================== */
+
+document.addEventListener(
+"keydown",
+event=>{
+
+    if(
+        event.key.length !== 1
+    ){
+        return;
+    }
+
+    const p = document.createElement("div");
+
+    p.textContent = event.key;
+
+    Object.assign(
+        p.style,
+        {
+        position:"fixed",
+        left:
+        Math.random()
+        *
+        window.innerWidth
+        + "px",
+
+        top:
+        (
+          window.innerHeight
+          - 120
+        ) + "px",
+        color:"#17dfff",
+        fontFamily:"Consolas",
+        fontSize:"18px",
+        opacity:"1",
+        pointerEvents:"none",
+        zIndex:"999"
+        }
+    );
+
+    document.body.appendChild(p);
+
+    let move = 0;
+
+    const anim =
+    setInterval(()=>{
+        move += 2;
+        p.style.top =
+        (
+          window.innerHeight
+          - 120
+          - move
+        ) + "px";
+        p.style.opacity =
+        1 - move / 100;
+        if(move > 100){
+            clearInterval(anim);
+            p.remove();
+        }
+    },16);
+});
+
+/* =====================================================
+   回路風背景アニメーション
+===================================================== */
+
+let bgOffset = 0;
+
+setInterval(()=>{
+    bgOffset++;
+    document.body.style.backgroundPosition =
+    `${bgOffset}px ${bgOffset}px`;
+
+},100);
+
+/* =====================================================
+   ランダム発光演出
+===================================================== */
+
+setInterval(()=>{
+
+    const glow =
+    document
+    .createElement("div");
+
+    Object.assign(
+    glow.style,
+    {
+        position:"fixed",
+        width:"8px",
+        height:"8px",
+        borderRadius:"50%",
+        background:"#00ffff",
+        left:
+        Math.random()
+        *
+        window.innerWidth
+        + "px",
+        top:
+        Math.random()
+        *
+        window.innerHeight
+        + "px",
+        boxShadow:"0 0 15px #00ffff",
+        pointerEvents:"none",
+        zIndex:"-1",
+        opacity:"1"
+    });
+
+    document.body.appendChild(glow);
+
+    let opacity = 1;
+
+    const fade =
+    setInterval(()=>{
+        opacity -= 0.05;
+        glow.style.opacity =
+        opacity;
+        if(opacity <= 0){
+            clearInterval(fade);
+            glow.remove();
+        }
+
+    },50);
+
+},500);
+
+/* =====================================================
+   デバッグ表示
+===================================================== */
+
+console.log(
+"IT Command Typing Game"
+);
+
+console.log(
+`Questions: ${QUESTIONS.length}`
+);
+
+/* =====================================================
+   初期ランキング表示
+===================================================== */
+
+renderRankingTable();
+
+/* =====================================================
+   フォーカス維持
+===================================================== */
+
+document.addEventListener(
+"click",
+()=>{
+    if(
+        !gameScreen
+        .classList
+        .contains("hidden")
+    ){
+        typingInput.focus();
+    }
+}
+);
+
+</script>
+
+</body>
+</html>
