@@ -4,7 +4,7 @@
 
 Windows / Linux の運用現場で頻出するコマンドを使いながらタイピング練習ができます。
 
-[プレイする]()
+[プレイする](https://taikiishiguro.github.io/it_command_typing_game/)
 
 ---
 
